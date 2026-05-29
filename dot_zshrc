@@ -1,0 +1,45 @@
+# startup
+clear
+fastfetch
+
+# initialization
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# oh-my-zsh
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting history)
+source $ZSH/oh-my-zsh.sh
+
+# environment
+if [[ -n $SSH_CONNECTION ]]; then
+  export EDITOR='nano'
+else
+  export EDITOR='subl -w'
+fi
+
+# path
+export PATH="/Users/milotek/.jetski/jetski/bin:$PATH"
+export PATH="/Users/milotek/.spicetify:$PATH"
+export PATH="/Applications/Sublime Text.app/Contents/SharedSupport/bin:$PATH"
+
+# aliases
+alias test="echo tickles"
+alias larp="fastfetch"
+alias larpmaxx="btop"
+alias ct="ssh milotek.c.googlers.com"
+alias rw="rw milotek.c.googlers.com"
+alias ws="jj jjd"
+alias gemini='/google/bin/releases/gemini-cli/tools/gemini'
+alias swir="rm -rf /Users/milotek/Work/swi && mkdir -p /Users/milotek/Work/swi && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip /Users/milotek/Work/swi && unzip -o /Users/milotek/Work/swi/chrome_extension_dev.zip -d /Users/milotek/Work/swi && rm /Users/milotek/Work/swi/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
+alias swie="rm -rf /Users/milotek/Work/swie && mkdir -p /Users/milotek/Work/swie && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swie/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip /Users/milotek/Work/swie && unzip -o /Users/milotek/Work/swie/chrome_extension_dev.zip -d /Users/milotek/Work/swie && rm /Users/milotek/Work/swie/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
+
+# functions
+vs() {
+    git diff --no-index --word-diff <(echo "$1") <(echo "$2")
+}
+
+# prompt-config
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
