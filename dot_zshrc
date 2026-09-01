@@ -6,16 +6,6 @@
 # command, and Mac-only bits are skipped on the cloudtop (and vice-versa).
 
 # =========================================================================
-# Powerlevel10k instant prompt (keep FIRST; no console output above this line)
-# =========================================================================
-# We deliberately print a fastfetch greeting later. `quiet` keeps the instant
-# prompt but silences p10k's "console output during initialization" warning.
-typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
-if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
-  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
-fi
-
-# =========================================================================
 # Host detection
 # =========================================================================
 case "$OSTYPE" in
@@ -45,6 +35,24 @@ unset _d
 export PATH
 
 # =========================================================================
+# Greeting FIRST (before the instant-prompt preamble) so there is no console
+# output *after* the preamble -- that was the source of p10k's warning. Needs
+# PATH (set above) so fastfetch resolves. Skipped in zellij panes / nested shells.
+# =========================================================================
+if [[ -o interactive && -z "$ZELLIJ" && -z "$FASTFETCH_SHOWN" ]] && command -v fastfetch >/dev/null 2>&1; then
+  export FASTFETCH_SHOWN=1
+  clear
+  fastfetch
+fi
+
+# =========================================================================
+# Powerlevel10k instant prompt (no console output should occur AFTER this)
+# =========================================================================
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+  source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
+# =========================================================================
 # Environment
 # =========================================================================
 if command -v nvim >/dev/null 2>&1; then
@@ -69,16 +77,6 @@ if [[ -n $_is_cloudtop ]]; then
 fi
 if ! infocmp "$TERM" >/dev/null 2>&1; then
   export TERM=xterm-256color
-fi
-
-# =========================================================================
-# Greeting (runs early so it shows instantly, before the slower OMZ/plugin
-# init below). INSTANT_PROMPT=quiet suppresses p10k's console-output warning.
-# Skipped inside zellij panes and nested shells.
-# =========================================================================
-if [[ -o interactive && -z "$ZELLIJ" && -z "$FASTFETCH_SHOWN" ]] && command -v fastfetch >/dev/null 2>&1; then
-  export FASTFETCH_SHOWN=1
-  fastfetch
 fi
 
 # =========================================================================
