@@ -1,0 +1,4 @@
+{{- /* Per-host ignores. ghostty is a macOS-only terminal; skip it elsewhere. */ -}}
+{{ if ne .chezmoi.os "darwin" }}
+.config/ghostty
+{{ end }}
