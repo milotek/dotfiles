@@ -1,0 +1,11 @@
+// ~/.config/zellij/layouts/default.kdl
+// Default layout for every session. Single-line tab bar at the top that also
+// shows the SESSION NAME (= workspace name when launched via `wz`), so you can
+// always tell which citc/fig/jj workspace a session belongs to. Keeps the low
+// overhead of the old `compact` default (one bar line, no bottom status bar).
+layout {
+    pane size=1 borderless=true {
+        plugin location="zellij:tab-bar"
+    }
+    pane
+}

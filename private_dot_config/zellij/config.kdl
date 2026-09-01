@@ -1,0 +1,104 @@
+// ~/.config/zellij/config.kdl  — managed starter config
+// Mirrors github.com/milotek/nixeljam home/programs/tui/zellij settings,
+// adapted for a headless cloudtop (OSC-52 clipboard, no copy_command).
+theme "catppuccin-mocha"
+default_shell "zsh"
+
+// nixeljam settings
+default_layout "default"          // custom default.kdl: 1-line tab bar that shows the session/workspace name
+pane_frames false
+serialize_pane_viewport true      // reattach shows exactly what was on screen
+mirror_session false              // each client gets its own cursor/focused tab
+// No copy_command on a headless host -> zellij falls back to OSC 52, which
+// reaches whatever terminal you SSH'd in from (Ghostty on the Mac).
+
+// existing options (kept)
+copy_on_select true
+scroll_buffer_size 50000
+mouse_mode true
+show_startup_tips false
+
+// ── Hyprland-style parity (non-modal, mod = Super = Cmd/GUI key) ──────────────
+// Mirrors github.com/milotek/nixeljam home/system/hyprland/bindings.nix.
+// Additive: the stock Ctrl+p/t/o/... modes are left intact as a fallback.
+keybinds {
+    shared_except "locked" {
+        // Focus windows (mod+HJKL)
+        bind "Super h" { MoveFocus "Left"; }
+        bind "Super j" { MoveFocus "Down"; }
+        bind "Super k" { MoveFocus "Up"; }
+        bind "Super l" { MoveFocus "Right"; }
+
+        // Move windows (mod+Shift+HJKL)
+        bind "Super Shift h" { MovePane "Left"; }
+        bind "Super Shift j" { MovePane "Down"; }
+        bind "Super Shift k" { MovePane "Up"; }
+        bind "Super Shift l" { MovePane "Right"; }
+
+        // New terminal (mod+Return)
+        bind "Super Enter" { NewPane; }
+
+        // Close window (mod+Q / mod+W)
+        bind "Super q" { CloseFocus; }
+        bind "Super w" { CloseFocus; }
+
+        // Fullscreen (mod+F) / float this pane (mod+Shift+F)
+        bind "Super f" { ToggleFocusFullscreen; }
+        bind "Super Shift f" { TogglePaneEmbedOrFloating; }
+
+        // Scratch = floating panes show/hide (mod+S); stash pane (mod+Shift+S)
+        bind "Super s" { ToggleFloatingPanes; }
+        bind "Super Shift s" { TogglePaneEmbedOrFloating; }
+
+        // Workspaces = tabs (mod+1..9)
+        bind "Super 1" { GoToTab 1; }
+        bind "Super 2" { GoToTab 2; }
+        bind "Super 3" { GoToTab 3; }
+        bind "Super 4" { GoToTab 4; }
+        bind "Super 5" { GoToTab 5; }
+        bind "Super 6" { GoToTab 6; }
+        bind "Super 7" { GoToTab 7; }
+        bind "Super 8" { GoToTab 8; }
+        bind "Super 9" { GoToTab 9; }
+
+        // New tab / cycle (mod+T, mod+Tab, mod+Shift+Tab)
+        bind "Super t" { NewTab; }
+        bind "Super Tab" { GoToNextTab; }
+        bind "Super Shift Tab" { GoToPreviousTab; }
+
+        // Move pane to a new tab (fills the mod+Shift+N gap)
+        bind "Super b" { BreakPane; }
+
+        // Resize (mod+Ctrl+HJKL) — Hyprland mod+R analog
+        bind "Super Ctrl h" { Resize "Increase Left"; }
+        bind "Super Ctrl j" { Resize "Increase Down"; }
+        bind "Super Ctrl k" { Resize "Increase Up"; }
+        bind "Super Ctrl l" { Resize "Increase Right"; }
+
+        // ── Google3 helpers ──────────────────────────────────────────────
+        // Floating scratch shell (throwaway commands, inherits current dir).
+        bind "Super g" {
+            Run "zsh" {
+                floating true
+                name "scratch"
+            }
+        }
+        // Floating blaze test on the current package (uses the `bt` helper in
+        // nixeljam.zsh -> `blaze test //<pkg>/...`). Stays open to read results.
+        bind "Super Shift g" {
+            Run "zsh" "-ic" "bt" {
+                floating true
+                name "blaze test"
+                close_on_exit false
+            }
+        }
+        // Floating blaze build on the current package (`bb` helper).
+        bind "Super Ctrl g" {
+            Run "zsh" "-ic" "bb" {
+                floating true
+                name "blaze build"
+                close_on_exit false
+            }
+        }
+    }
+}

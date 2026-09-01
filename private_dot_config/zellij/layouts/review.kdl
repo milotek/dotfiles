@@ -1,0 +1,26 @@
+// ~/.config/zellij/layouts/review.kdl
+// CL review layout. Launch with:  zellij --layout review
+//
+//   top    -> nvim (60%) for reading/editing the change
+//   bottom -> a wide shell (40%) for VCS + Critique CLI
+//             (hg/jj/g4, `critique`, `blaze test`, presubmit, etc.)
+layout {
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    tab name="review" focus=true {
+        pane split_direction="horizontal" {
+            pane size="60%" name="editor" {
+                command "nvim"
+            }
+            pane size="40%" name="vcs"
+        }
+    }
+}

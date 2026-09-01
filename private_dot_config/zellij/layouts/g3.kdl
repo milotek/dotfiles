@@ -1,0 +1,34 @@
+// ~/.config/zellij/layouts/g3.kdl
+// Google3 dev layout. Launch with:  zellij --layout g3
+// or per-workspace via the `wz <workspace>` shell helper.
+//
+//   tab "edit"  -> nvim (65%) + a scratch shell (35%) for cs/grep/logs
+//   tab "build" -> a shell parked in the workspace for blaze build/test
+//   tab "logs"  -> a shell for tailing logs / stubby / f1-sql
+layout {
+    // Per-tab chrome: session-name tab bar on top, keybind hints on the bottom.
+    default_tab_template {
+        pane size=1 borderless=true {
+            plugin location="zellij:tab-bar"
+        }
+        children
+        pane size=2 borderless=true {
+            plugin location="zellij:status-bar"
+        }
+    }
+
+    tab name="edit" focus=true {
+        pane split_direction="vertical" {
+            pane size="65%" name="editor" {
+                command "nvim"
+            }
+            pane size="35%" name="scratch"
+        }
+    }
+    tab name="build" {
+        pane name="blaze"
+    }
+    tab name="logs" {
+        pane name="logs"
+    }
+}
