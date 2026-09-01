@@ -1,45 +1,323 @@
-# startup
-clear
-fastfetch
+# ~/.zshrc — single self-contained config for macOS (gmac) + Linux cloudtop.
+#
+# Rebuilt from the pre-flatten config (config-backup-20260820) and merged with
+# the newer tooling (lazygit, eza/bat, zoxide/fzf/direnv, zellij, google3 helpers).
+# Every tool/alias guards on availability so a missing binary never breaks a core
+# command, and Mac-only bits are skipped on the cloudtop (and vice-versa).
 
-# initialization
+# =========================================================================
+# Powerlevel10k instant prompt (keep FIRST; no console output above this line)
+# =========================================================================
+# We deliberately print a fastfetch greeting later. `quiet` keeps the instant
+# prompt but silences p10k's "console output during initialization" warning.
+typeset -g POWERLEVEL9K_INSTANT_PROMPT=quiet
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
   source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi
 
-# oh-my-zsh
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="powerlevel10k/powerlevel10k"
-plugins=(git zsh-autosuggestions zsh-syntax-highlighting history)
-source $ZSH/oh-my-zsh.sh
+# =========================================================================
+# Host detection
+# =========================================================================
+case "$OSTYPE" in
+  darwin*) _is_mac=1 ;;
+  linux*)  _is_linux=1 ;;
+esac
+[[ -n $_is_linux && -d /google ]] && _is_cloudtop=1
 
-# environment
-if [[ -n $SSH_CONNECTION ]]; then
-  export EDITOR='nano'
-else
+# =========================================================================
+# PATH (deduped; user-local bins ahead of system)
+# =========================================================================
+typeset -U path   # keep PATH entries unique
+for _d in "$HOME/bin" "$HOME/.local/bin" "$HOME/go/bin"; do
+  [[ -d $_d ]] && path=("$_d" $path)
+done
+if [[ -n $_is_mac ]]; then
+  for _d in \
+    "$HOME/.jetski/jetski/bin" \
+    "$HOME/.antigravity/antigravity/bin" \
+    "$HOME/.spicetify" \
+    "/Applications/Sublime Text.app/Contents/SharedSupport/bin"; do
+    [[ -d $_d ]] && path=("$_d" $path)
+  done
+  [[ -x /opt/homebrew/bin/brew ]] && eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
+unset _d
+export PATH
+
+# =========================================================================
+# Environment
+# =========================================================================
+if command -v nvim >/dev/null 2>&1; then
+  export EDITOR='nvim'
+elif [[ -n $_is_mac ]] && command -v subl >/dev/null 2>&1; then
   export EDITOR='subl -w'
+else
+  export EDITOR='vim'
+fi
+export COLORTERM='truecolor'
+[[ -n $_is_cloudtop ]] && export CLOUD_CODE_URL="http://localhost:8101"
+
+# =========================================================================
+# Terminfo
+#   Cloudtop: prefer user terminfo (xterm-ghostty lives in ~/.terminfo).
+#   macOS: ghostty ships its own terminfo; do NOT override TERMINFO.
+#   Both: fall back to a safe entry if the current TERM isn't installed.
+# =========================================================================
+if [[ -n $_is_cloudtop ]]; then
+  export TERMINFO="$HOME/.terminfo"
+  export TERMINFO_DIRS="$HOME/.terminfo:/usr/share/terminfo"
+fi
+if ! infocmp "$TERM" >/dev/null 2>&1; then
+  export TERM=xterm-256color
 fi
 
-# path
-export PATH="/Users/milotek/.jetski/jetski/bin:$PATH"
-export PATH="/Users/milotek/.spicetify:$PATH"
-export PATH="/Applications/Sublime Text.app/Contents/SharedSupport/bin:$PATH"
+# =========================================================================
+# Oh My Zsh + Powerlevel10k
+# =========================================================================
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+DISABLE_AUTO_UPDATE=true          # skip OMZ's startup update check (faster)
+plugins=(
+  zsh-autosuggestions
+  zsh-syntax-highlighting
+)
+[[ -r "$ZSH/oh-my-zsh.sh" ]] && source "$ZSH/oh-my-zsh.sh"
 
-# aliases
-alias test="echo tickles"
-alias larp="fastfetch"
-alias larpmaxx="btop"
+# =========================================================================
+# History
+# =========================================================================
+HISTSIZE=10000
+SAVEHIST=10000
+setopt HIST_IGNORE_DUPS
+
+# =========================================================================
+# Completion styling (on top of oh-my-zsh)
+# =========================================================================
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}' 'r:|[._-]=* r:|=*' 'l:|=* r:|=*'
+zstyle ':completion:*' menu select
+zstyle ':completion:*' special-dirs true
+zstyle ':completion:*' squeeze-slashes true
+zstyle ':completion:*' sort false
+zstyle ':completion:*:eza' sort false
+
+# =========================================================================
+# Keybindings: prefix history search on Up/Down
+# =========================================================================
+autoload -U history-search-end
+zle -N history-beginning-search-backward-end history-search-end
+zle -N history-beginning-search-forward-end history-search-end
+bindkey "^[OA" history-beginning-search-backward-end
+bindkey "^[[A" history-beginning-search-backward-end
+bindkey "^[OB" history-beginning-search-forward-end
+bindkey "^[[B" history-beginning-search-forward-end
+
+# =========================================================================
+# Aliases — editor
+# =========================================================================
+if command -v nvim >/dev/null 2>&1; then
+  alias vim="nvim" vi="nvim" v="nvim"
+fi
+
+# Modern replacements — only shadow core commands when the tool is installed.
+if command -v eza >/dev/null 2>&1; then
+  alias ls="eza --icons=always --no-quotes"
+  alias tree="eza --icons=always --tree --no-quotes"
+fi
+if command -v bat >/dev/null 2>&1; then
+  alias cat="bat --theme=base16 --paging=never --tabs=2 --wrap=never --plain"
+fi
+
+# Shortcuts
+alias mkdir="mkdir -p"
+alias c="clear"
+alias e="exit"
+alias test="echo tickles"         # (from old config; note: shadows the `test` builtin interactively)
+command -v fastfetch >/dev/null 2>&1 && alias larp="fastfetch"
+command -v btop     >/dev/null 2>&1 && alias larpmaxx="btop"
+command -v clang++  >/dev/null 2>&1 && \
+  alias cl="clang++ -std=c++26 -ggdb -pedantic-errors -Wall -Weffc++ -Wextra -Wconversion -Wsign-conversion -Werror"
+
+# git
+command -v lazygit >/dev/null 2>&1 && alias g="lazygit"
+alias ga="git add"
+alias gc="git commit"
+alias gcu="git add . && git commit -m 'Update'"
+alias gp="git push"
+alias gpl="git pull"
+alias gs="git status"
+alias gd="git diff"
+alias gco="git checkout"
+alias gcb="git checkout -b"
+alias gbr="git branch"
+alias grs="git reset HEAD~1"
+alias grh="git reset --hard HEAD~1"
+alias gaa="git add ."
+alias gcm="git commit -m"
+
+# zellij
+if command -v zellij >/dev/null 2>&1; then
+  alias za="zellij attach"
+  alias zls="zellij list-sessions"
+  alias zka="zellij kill-all-sessions"
+fi
+
+# typo helpers
+alias clera="clear"
+alias celar="clear"
+
+# global (pipe) aliases
+alias -g G="| grep"
+alias -g L="| less"
+alias -g V="| nvim"
+alias -g H="| head"
+alias -g T="| tail"
+alias -g JQ="| jq"
+alias -g NE="2>/dev/null"
+alias -g ND=">/dev/null"
+alias -g NUL=">/dev/null 2>&1"
+
+# =========================================================================
+# Google / cloudtop workflow aliases (harmless on machines lacking the tools)
+# =========================================================================
 alias ct="ssh milotek.c.googlers.com"
-alias rw="rw milotek.c.googlers.com"
-alias ws="jj jjd"
+alias rw="rw milotek.c.googlers.com"          # RoadWarrior: connect to cloudtop
 alias gemini='/google/bin/releases/gemini-cli/tools/gemini'
-alias swir="rm -rf /Users/milotek/Work/swi && mkdir -p /Users/milotek/Work/swi && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip /Users/milotek/Work/swi && unzip -o /Users/milotek/Work/swi/chrome_extension_dev.zip -d /Users/milotek/Work/swi && rm /Users/milotek/Work/swi/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
-alias swie="rm -rf /Users/milotek/Work/swie && mkdir -p /Users/milotek/Work/swie && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swie/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip /Users/milotek/Work/swie && unzip -o /Users/milotek/Work/swie/chrome_extension_dev.zip -d /Users/milotek/Work/swie && rm /Users/milotek/Work/swie/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
+alias jetski="/google/bin/releases/jetski-devs/tools/cli --dangerously-skip-permissions"
+alias js="jetski"
+alias swib="iblaze build //search/frontend/silk/tools/webinspector:web_inspector_fs_out"
+alias swic="scp -r milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/bin/search/frontend/silk/tools/webinspector/web_inspector_fs_out ./"
+alias boba="/google/src/cloud/milotek/swi/google3/blaze-bin/experimental/users/jerrygu/boba_lover/server --backend=lb"
+# swir/swie: pull the SWI chrome extension from cloudtop to the local Mac and reload it.
+alias swir="rm -rf $HOME/Work/swi && mkdir -p $HOME/Work/swi && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/swi && unzip -o $HOME/Work/swi/chrome_extension_dev.zip -d $HOME/Work/swi && rm $HOME/Work/swi/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
+alias swie="rm -rf $HOME/Work/swie && mkdir -p $HOME/Work/swie && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swie/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/swie && unzip -o $HOME/Work/swie/chrome_extension_dev.zip -d $HOME/Work/swie && rm $HOME/Work/swie/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
 
-# functions
+# Named directories — only if the target exists
+[[ -d ~/Downloads ]] && hash -d dl=~/Downloads
+[[ -d ~/dev ]]       && hash -d de=~/dev
+
+# =========================================================================
+# Tool integrations (each self-guards on `command -v`)
+# =========================================================================
+if command -v zoxide >/dev/null 2>&1; then
+  eval "$(zoxide init zsh)"
+  alias cd="z"
+fi
+
+export FZF_DEFAULT_OPTS="--margin=1 --layout=reverse --border=none --info=hidden --prompt='/ ' -i --no-bold --color=fg:#cdd6f4,fg+:#89b4fa,bg:-1,bg+:-1,prompt:#6c7086,pointer:#89b4fa"
+if command -v fzf >/dev/null 2>&1; then
+  source <(fzf --zsh) 2>/dev/null
+fi
+
+if command -v direnv >/dev/null 2>&1; then
+  eval "$(direnv hook zsh)"
+fi
+
+# =========================================================================
+# Functions — general (from old config)
+# =========================================================================
+# vs — word-diff two strings.
 vs() {
-    git diff --no-index --word-diff <(echo "$1") <(echo "$2")
+  git diff --no-index --word-diff <(echo "$1") <(echo "$2")
 }
 
-# prompt-config
-[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+# dl — download media from a link.  usage: dl <link> [format]
+dl() {
+  if [ -z "$2" ]; then
+    yt-dlp "$1"
+  else
+    yt-dlp -f "$2" "$1"
+  fi
+}
+
+# ul — upload a file to catbox.moe (needs macOS pbcopy/pbpaste).  usage: ul <file.ext>
+if command -v pbcopy >/dev/null 2>&1; then
+  ul() {
+    LC_ALL=C curl -s -F "reqtype=fileupload" -F "userhash=dd880b5205f68cf0614c39a0d" -F "fileToUpload=@$1" https://catbox.moe/user/api.php | pbcopy; pbpaste; echo "";
+  }
+fi
+
+# =========================================================================
+# Google3 helpers (cloudtop only)
+#   bb [target] -> blaze build //<current-pkg>/...
+#   bt [target] -> blaze test  //<current-pkg>/...
+#   ws <name>   -> cd /google/src/cloud/$USER/<name>/google3
+#   wz <name>   -> ws + attach/create a per-workspace zellij session (g3 layout)
+# =========================================================================
+if [[ -n $_is_cloudtop ]]; then
+  unalias bb bt ws wz 2>/dev/null   # clear any OMZ/plugin aliases first
+
+  _g3_pkg() {
+    local rel="${PWD##*/google3/}"
+    [[ "$rel" == "$PWD" ]] && { echo "not under google3: $PWD" >&2; return 1; }
+    echo "//$rel"
+  }
+  bb() { local t; t="$(_g3_pkg)" || return 1; blaze build "${1:-$t/...}"; }
+  bt() { local t; t="$(_g3_pkg)" || return 1; blaze test  "${1:-$t/...}"; }
+
+  ws() {
+    if [ -z "$1" ]; then
+      echo "Available workspaces:"; ls -1 "/google/src/cloud/$USER" 2>/dev/null; return 0
+    fi
+    local target_dir="/google/src/cloud/$USER/$1/google3"
+    if [ -d "$target_dir" ]; then
+      cd "$target_dir" || return 1
+    else
+      echo "Workspace '$1' not found under /google/src/cloud/$USER/" >&2; return 1
+    fi
+  }
+
+  _zj_session() {
+    local base="/google/src/cloud/$USER/"
+    if [[ "$PWD" == "$base"* ]]; then
+      local rest="${PWD#$base}"; echo "${rest%%/*}"
+    else
+      echo main
+    fi
+  }
+
+  wz() {
+    local ws="$1"
+    if [[ -z "$ws" ]]; then
+      echo "Available workspaces:"; ls -1 "/google/src/cloud/$USER"; return 0
+    fi
+    local dir="/google/src/cloud/$USER/$ws/google3"
+    [[ -d "$dir" ]] || { echo "Workspace '$ws' not found under /google/src/cloud/$USER/" >&2; return 1; }
+    cd "$dir" || return 1
+    if [[ -n "$ZELLIJ" ]]; then
+      echo "Already inside zellij session '$ZELLIJ_SESSION_NAME'." >&2
+      echo "Detach first (Ctrl+o then d), then run: wz $ws" >&2
+      return 1
+    fi
+    if zellij list-sessions -s 2>/dev/null | grep -qx "$ws"; then
+      zellij attach "$ws"
+    else
+      zellij --session "$ws" --layout g3
+    fi
+  }
+fi
+
+# =========================================================================
+# p10k prompt config (regenerate with `p10k configure`)
+# =========================================================================
+[[ -r ~/.p10k.zsh ]] && source ~/.p10k.zsh
+
+# =========================================================================
+# Greeting: only the outermost interactive login shell (skipped in zellij/nested)
+# =========================================================================
+if [[ -o interactive && -z "$ZELLIJ" && -z "$FASTFETCH_SHOWN" ]] && command -v fastfetch >/dev/null 2>&1; then
+  export FASTFETCH_SHOWN=1
+  fastfetch
+fi
+
+# =========================================================================
+# Zellij auto-attach over SSH (runs last so `command -v zellij` works)
+# =========================================================================
+if [[ $- == *i* && -z "$ZELLIJ" && -n "$SSH_CONNECTION" ]] && command -v zellij >/dev/null 2>&1; then
+  if [[ -n $_is_cloudtop ]]; then
+    zellij attach --create "$(_zj_session)"
+  else
+    zellij attach --create main
+  fi
+fi
+
+unset _is_mac _is_linux _is_cloudtop
