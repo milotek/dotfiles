@@ -1,7 +1,7 @@
 # swag
 theme = Catppuccin Mocha
 window-theme = system
-font-family = "MesloLGS NF"
+font-family = "JetBrains Mono"
 font-size = 12
 font-thicken = true
 
@@ -44,3 +44,5 @@ macos-icon-screen-color = 000000
 
 # binds
 keybind = global:control+tab=toggle_quick_terminal
+keybind = cmd+shift+c=text:\x03
+keybind = cmd+shift+v=text:\x16

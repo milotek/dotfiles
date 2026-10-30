@@ -35,4 +35,14 @@
 [credential "https://gist.github.com"]
 	helper =
 	helper = !/opt/homebrew/bin/gh auth git-credential
+[user]
+	name = Milo Tekchandani
+	email = milo@milotek.dev
+	signingkey = /Users/milotek/.ssh/id_ed25519.pub
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+[gpg "ssh"]
+	allowedSignersFile = /Users/milotek/.config/git/allowed_signers
 {{- end }}

@@ -23,7 +23,6 @@ for _d in "$HOME/bin" "$HOME/.local/bin" "$HOME/go/bin"; do
 done
 if [[ -n $_is_mac ]]; then
   for _d in \
-    "$HOME/.jetski/jetski/bin" \
     "$HOME/.antigravity/antigravity/bin" \
     "$HOME/.spicetify" \
     "/Applications/Sublime Text.app/Contents/SharedSupport/bin"; do
@@ -65,7 +64,7 @@ if [[ $- == *i* && -z "$ZELLIJ" && -n "$SSH_CONNECTION" ]] \
    && [[ "$TERM_PROGRAM" != "cider" && "$TERM_PROGRAM" != "vscode" && -z "$CIDER_SHELL_INTEGRATION" && -z "$VSCODE_INJECTION" && "$ZDOTDIR" != /tmp/cidermux* && "$SSH_AUTH_SOCK" != */cidermux/* ]] \
    && command -v zellij >/dev/null 2>&1; then
   if [[ -n $_is_cloudtop ]]; then
-    zellij attach --create "$(_zj_session)"
+    zellij attach --create "${ZJ_SESSION:-$(_zj_session)}"
   else
     zellij attach --create main
   fi
@@ -214,6 +213,10 @@ alias -g NUL=">/dev/null 2>&1"
 # =========================================================================
 alias ct="ssh milotek.c.googlers.com"
 alias rw="rw milotek.c.googlers.com"          # RoadWarrior: connect to cloudtop
+# Quick-terminal variants: land in a dedicated 'quick' zellij session so the
+# Ghostty quick terminal (Ctrl+Tab) never clobbers your main window's session.
+alias ctq="ssh -t milotek.c.googlers.com 'ZJ_SESSION=quick exec zsh -il'"
+alias rwq="rw -i 'ZJ_SESSION=quick exec zsh -il' milotek.c.googlers.com"  # RoadWarrior -> quick sesh
 alias gemini='/google/bin/releases/gemini-cli/tools/gemini'
 if [[ -n $_is_mac ]]; then
   jetski() { /usr/local/bin/jetski --dangerously-skip-permissions "$@"; }  # mule jetski-cli; ~/.jetski/jetski/bin/jetski is the IDE
@@ -228,7 +231,7 @@ alias swib="iblaze build //search/frontend/silk/tools/webinspector:web_inspector
 alias swic="scp -r milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/bin/search/frontend/silk/tools/webinspector/web_inspector_fs_out ./"
 
 # swir/swie: pull the SWI chrome extension from cloudtop to the local Mac and reload it.
-alias swir="rm -rf $HOME/Work/swi && mkdir -p $HOME/Work/swi && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/swi && unzip -o $HOME/Work/swi/chrome_extension_dev.zip -d $HOME/Work/swi && rm $HOME/Work/swi/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
+alias swir="mkdir -p $HOME/Work && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/chrome_extension_dev.zip && rm -rf $HOME/Work/swi && mkdir -p $HOME/Work/swi && unzip -o $HOME/Work/chrome_extension_dev.zip -d $HOME/Work/swi && rm $HOME/Work/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
 alias swie="rm -rf $HOME/Work/swie && mkdir -p $HOME/Work/swie && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swie/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/swie && unzip -o $HOME/Work/swie/chrome_extension_dev.zip -d $HOME/Work/swie && rm $HOME/Work/swie/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
 
 # Named directories — only if the target exists
