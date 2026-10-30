@@ -39,10 +39,36 @@ export PATH
 # output *after* the preamble -- that was the source of p10k's warning. Needs
 # PATH (set above) so fastfetch resolves. Skipped in zellij panes / nested shells.
 # =========================================================================
-if [[ -o interactive && -z "$ZELLIJ" && -z "$FASTFETCH_SHOWN" ]] && command -v fastfetch >/dev/null 2>&1; then
+if [[ -o interactive && -z "$ZELLIJ" && -z "$FASTFETCH_SHOWN" && "$TERM_PROGRAM" != "cider" && -z "$CIDER_SHELL_INTEGRATION" && "$ZDOTDIR" != /tmp/cidermux* ]] && command -v fastfetch >/dev/null 2>&1; then
   export FASTFETCH_SHOWN=1
   clear
   fastfetch
+fi
+
+# =========================================================================
+# Zellij auto-attach over SSH. MUST run before the p10k instant-prompt
+# preamble: that preamble redirects stdin to /dev/null and stdout/stderr to a
+# capture file for the rest of .zshrc, so a zellij client started after it
+# renders into the capture file and spins at 100% CPU on a dead stdin, which
+# looks like a hung SSH login.
+# Not run in Cider / VS Code integrated terminals or under cidermux.
+# =========================================================================
+_zj_session() {
+  local base="/google/src/cloud/$USER/"
+  if [[ "$PWD" == "$base"* ]]; then
+    local rest="${PWD#$base}"; echo "${rest%%/*}"
+  else
+    echo main
+  fi
+}
+if [[ $- == *i* && -z "$ZELLIJ" && -n "$SSH_CONNECTION" ]] \
+   && [[ "$TERM_PROGRAM" != "cider" && "$TERM_PROGRAM" != "vscode" && -z "$CIDER_SHELL_INTEGRATION" && -z "$VSCODE_INJECTION" && "$ZDOTDIR" != /tmp/cidermux* && "$SSH_AUTH_SOCK" != */cidermux/* ]] \
+   && command -v zellij >/dev/null 2>&1; then
+  if [[ -n $_is_cloudtop ]]; then
+    zellij attach --create "$(_zj_session)"
+  else
+    zellij attach --create main
+  fi
 fi
 
 # =========================================================================
@@ -63,7 +89,6 @@ else
   export EDITOR='vim'
 fi
 export COLORTERM='truecolor'
-[[ -n $_is_cloudtop ]] && export CLOUD_CODE_URL="http://localhost:8101"
 
 # =========================================================================
 # Terminfo
@@ -190,11 +215,18 @@ alias -g NUL=">/dev/null 2>&1"
 alias ct="ssh milotek.c.googlers.com"
 alias rw="rw milotek.c.googlers.com"          # RoadWarrior: connect to cloudtop
 alias gemini='/google/bin/releases/gemini-cli/tools/gemini'
-alias jetski="/google/bin/releases/jetski-devs/tools/cli --dangerously-skip-permissions"
+if [[ -n $_is_mac ]]; then
+  jetski() { /usr/local/bin/jetski --dangerously-skip-permissions "$@"; }  # mule jetski-cli; ~/.jetski/jetski/bin/jetski is the IDE
+else
+  jetski() { /google/bin/releases/jetski-devs/tools/cli --dangerously-skip-permissions "$@"; }
+fi
 alias js="jetski"
+alias jetski-cli="jetski"
+alias j="jetski"
+alias o="ohmyagy"
 alias swib="iblaze build //search/frontend/silk/tools/webinspector:web_inspector_fs_out"
 alias swic="scp -r milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/bin/search/frontend/silk/tools/webinspector/web_inspector_fs_out ./"
-alias boba="/google/src/cloud/milotek/swi/google3/blaze-bin/experimental/users/jerrygu/boba_lover/server --backend=lb"
+
 # swir/swie: pull the SWI chrome extension from cloudtop to the local Mac and reload it.
 alias swir="rm -rf $HOME/Work/swi && mkdir -p $HOME/Work/swi && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swi/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/swi && unzip -o $HOME/Work/swi/chrome_extension_dev.zip -d $HOME/Work/swi && rm $HOME/Work/swi/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
 alias swie="rm -rf $HOME/Work/swie && mkdir -p $HOME/Work/swie && scp milotek@milotek.c.googlers.com:/google/src/cloud/milotek/swie/google3/blaze-out/k8-opt/genfiles/search/xga/xplatform/tools/search_dev_toolkit/chrome_extension_dev.zip $HOME/Work/swie && unzip -o $HOME/Work/swie/chrome_extension_dev.zip -d $HOME/Work/swie && rm $HOME/Work/swie/chrome_extension_dev.zip && open -g -a 'Google Chrome' 'http://reload.extensions'"
@@ -274,15 +306,6 @@ if [[ -n $_is_cloudtop ]]; then
     fi
   }
 
-  _zj_session() {
-    local base="/google/src/cloud/$USER/"
-    if [[ "$PWD" == "$base"* ]]; then
-      local rest="${PWD#$base}"; echo "${rest%%/*}"
-    else
-      echo main
-    fi
-  }
-
   wz() {
     local ws="$1"
     if [[ -z "$ws" ]]; then
@@ -308,16 +331,5 @@ fi
 # p10k prompt config (regenerate with `p10k configure`)
 # =========================================================================
 [[ -r ~/.p10k.zsh ]] && source ~/.p10k.zsh
-
-# =========================================================================
-# Zellij auto-attach over SSH (runs last so `command -v zellij` works)
-# =========================================================================
-if [[ $- == *i* && -z "$ZELLIJ" && -n "$SSH_CONNECTION" ]] && command -v zellij >/dev/null 2>&1; then
-  if [[ -n $_is_cloudtop ]]; then
-    zellij attach --create "$(_zj_session)"
-  else
-    zellij attach --create main
-  fi
-fi
 
 unset _is_mac _is_linux _is_cloudtop

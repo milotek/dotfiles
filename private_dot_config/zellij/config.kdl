@@ -102,3 +102,12 @@ keybinds {
         }
     }
 }
+
+// ── Web server (browser access, reachable like Jetski) ───────────────────────
+// Managed by Jetski: bind to all interfaces + self-signed TLS so
+// https://milotek.c.googlers.com:8082 works directly over the corp network.
+// A systemd --user service (zellij-web.service) keeps it running on login/boot.
+web_server true                 // ensure a web server runs when a session starts
+web_sharing "on"                // allow terminal sessions to be shared to the web
+web_server_ip "127.0.0.1"
+web_server_port 8082
